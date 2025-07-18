@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>待办事项列表</title>
+    <link rel="stylesheet" href="css/todolist.css">
+</head>
+<body>
+    <div class="app-container">
+        <div class="sidebar">
+            <h2>任务分类</h2>
+            <div id="categoryList" class="category-list"></div>
+            <button id="addTaskBtn" class="add-task-btn">+ 添加任务</button>
+            <button id="logoutBtn" class="logout-btn">退出登录</button>
+        </div>
+        <div id="taskContent" class="task-content">
+            <h2>任务列表</h2>
+            <div id="taskList" class="task-list"></div>
+        </div>
+    </div>
+
+    <!-- 添加任务模态框 -->
+    <div id="taskModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <form id="taskForm">
+                <div class="form-group">
+                    <label for="taskTitle">任务标题*</label>
+                    <input type="text" id="taskTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="taskPriority">优先级</label>
+                    <select id="taskPriority">
+                        <option value="极低">极低</option>
+                        <option value="低">低</option>
+                        <option value="中" selected>中</option>
+                        <option value="高">高</option>
+                        <option value="极高">极高</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>标签</label>
+                    <div class="tags-group">
+                        <label><input type="checkbox" name="taskTag" value="个人"> 个人</label>
+                        <label><input type="checkbox" name="taskTag" value="工作"> 工作</label>
+                        <label><input type="checkbox" name="taskTag" value="重要"> 重要</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="taskEndTime">截止日期</label>
+                    <input type="date" id="taskEndTime">
+                </div>
+                <div class="form-group">
+                    <label for="taskNotes">备注</label>
+                    <textarea id="taskNotes" rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn">保存任务</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/todolist.js"></script>
+</body>
+</html>
