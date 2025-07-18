@@ -41,6 +41,15 @@ const TaskManager = {
   
       if (response.ok) {
         this.tasks = await response.json();
+        // 转换字段名以保持兼容性
+        this.tasks = this.tasks.map(task => ({
+          ...task,
+          _id: task.id,
+          userId: task.user_id,
+          startTime: task.start_time,
+          endTime: task.end_time,
+          createdAt: task.created_at
+        }));
       } else if (response.status === 401) {
         // 未授权，重定向到登录页
         localStorage.removeItem('user');

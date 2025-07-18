@@ -1,11 +1,7 @@
 const express = require('express');
-const { connectDB } = require('./config/db');
 const path = require('path');
 
 const app = express();
-
-// 连接数据库
-connectDB();
 
 // 中间件
 app.use(express.json());

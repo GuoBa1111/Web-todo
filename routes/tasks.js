@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const Task = require('../models/Task');
+const supabase = require('../config/supabase');
 
 // 获取所有任务 - 从查询参数获取userId
 router.get('/', async (req, res) => {
@@ -9,7 +9,18 @@ router.get('/', async (req, res) => {
     if (!userId) {
       return res.status(400).json({ msg: '用户ID不能为空' });
     }
-    const tasks = await Task.find({ userId });
+
+    const { data: tasks, error } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return res.status(500).json({ msg: '获取任务失败' });
+    }
+
     res.json(tasks);
   } catch (err) {
     console.error(err.message);
@@ -20,18 +31,28 @@ router.get('/', async (req, res) => {
 // 创建任务
 router.post('/', async (req, res) => {
   try {
-    const newTask = new Task({
-      userId: req.body.userId,
+    const taskData = {
+      user_id: req.body.userId,
       title: req.body.title,
       status: req.body.status || '未开始',
-      startTime: req.body.startTime || Date.now(),
-      endTime: req.body.endTime,
+      start_time: req.body.startTime || new Date().toISOString(),
+      end_time: req.body.endTime,
       tags: req.body.tags || [],
       priority: req.body.priority || '中',
       notes: req.body.notes
-    });
+    };
 
-    const task = await newTask.save();
+    const { data: task, error } = await supabase
+      .from('tasks')
+      .insert([taskData])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return res.status(500).json({ msg: '创建任务失败' });
+    }
+
     res.json(task);
   } catch (err) {
     console.error(err.message);
@@ -42,26 +63,28 @@ router.post('/', async (req, res) => {
 // 更新任务 - 支持多字段更新
 router.patch('/:id', async (req, res) => {
   try {
-    const updates = {
-      status: req.body.status,
-      title: req.body.title,
-      priority: req.body.priority,
-      notes: req.body.notes,
-      tags: req.body.tags,
-      endTime: req.body.endTime,
-      startTime: req.body.startTime
-    };
+    const updates = {};
     
-    // 移除undefined的属性
-    Object.keys(updates).forEach(key => 
-      updates[key] === undefined && delete updates[key]
-    );
+    // 只更新提供的字段
+    if (req.body.status !== undefined) updates.status = req.body.status;
+    if (req.body.title !== undefined) updates.title = req.body.title;
+    if (req.body.priority !== undefined) updates.priority = req.body.priority;
+    if (req.body.notes !== undefined) updates.notes = req.body.notes;
+    if (req.body.tags !== undefined) updates.tags = req.body.tags;
+    if (req.body.endTime !== undefined) updates.end_time = req.body.endTime;
+    if (req.body.startTime !== undefined) updates.start_time = req.body.startTime;
     
-    const task = await Task.findByIdAndUpdate(
-      req.params.id,
-      updates,
-      { new: true, runValidators: true }
-    );
+    const { data: task, error } = await supabase
+      .from('tasks')
+      .update(updates)
+      .eq('id', req.params.id)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Supabase error:', error);
+      return res.status(500).json({ msg: '更新任务失败' });
+    }
     
     if (!task) {
       return res.status(404).json({ msg: '任务不存在' });
@@ -77,7 +100,16 @@ router.patch('/:id', async (req, res) => {
 // 删除任务
 router.delete('/:id', async (req, res) => {
   try {
-    await Task.findByIdAndDelete(req.params.id);
+    const { error } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('id', req.params.id);
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return res.status(500).json({ msg: '删除任务失败' });
+    }
+
     res.json({ msg: '任务已删除' });
   } catch (err) {
     console.error(err.message);
