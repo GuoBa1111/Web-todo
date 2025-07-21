@@ -12,6 +12,14 @@ if (!supabaseUrl || !supabaseKey) {
   process.exit(1);
 }
 
+// Check for placeholder values that would cause DNS errors
+if (supabaseUrl.includes('your-project-id') || supabaseUrl.includes('placeholder')) {
+  console.error('Invalid Supabase URL detected. Please replace placeholder values with actual Supabase credentials.');
+  console.error('Current URL:', supabaseUrl);
+  console.error('Get your actual project URL from your Supabase dashboard under Settings > API');
+  process.exit(1);
+}
+
 // Validate URL format
 try {
   new URL(supabaseUrl);
