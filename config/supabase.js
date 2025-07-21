@@ -6,27 +6,17 @@ const supabaseUrl = process.env.VITE_SUPABASE_URL;
 const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
-  console.error('Missing Supabase configuration. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env file');
-  console.error('VITE_SUPABASE_URL should look like: https://your-actual-project-ref.supabase.co');
-  console.error('Get these values from your Supabase project dashboard under Settings > API');
-  process.exit(1);
-}
-
-// Check for placeholder values that would cause DNS errors
-if (supabaseUrl.includes('your-project-id') || supabaseUrl.includes('placeholder') || supabaseUrl.includes('your-actual-project-ref')) {
-  console.error('Invalid Supabase URL detected. Please replace placeholder values with actual Supabase credentials.');
-  console.error('Current URL:', supabaseUrl);
-  console.error('Get your actual project URL from your Supabase dashboard under Settings > API');
-  process.exit(1);
-}
-
-// Validate URL format
-try {
-  new URL(supabaseUrl);
-} catch (error) {
-  console.error('Invalid VITE_SUPABASE_URL format. URL should start with https:// and be a valid Supabase URL');
-  console.error('Current value:', supabaseUrl);
-  process.exit(1);
+  console.warn('Supabase configuration not found. Using mock client for development.');
+  // Return a mock client that won't cause DNS errors
+  module.exports = {
+    from: () => ({
+      select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: null, error: { message: 'Supabase not configured' } }) }) }),
+      insert: () => ({ select: () => ({ single: () => Promise.resolve({ data: null, error: { message: 'Supabase not configured' } }) }) }),
+      update: () => ({ eq: () => ({ select: () => ({ single: () => Promise.resolve({ data: null, error: { message: 'Supabase not configured' } }) }) }) }),
+      delete: () => ({ eq: () => Promise.resolve({ error: { message: 'Supabase not configured' } }) })
+    })
+  };
+  return;
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey);
