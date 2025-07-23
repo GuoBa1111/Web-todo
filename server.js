@@ -19,9 +19,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // 生产环境配置
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static('client/build'));
+  // 修改为正确的public目录
+  app.use(express.static(path.join(__dirname, 'public')));
   app.get('*', (req, res) => {
-    res.sendFile(path.resolve(__dirname, 'client', 'build', 'index.html'));
+    res.sendFile(path.resolve(__dirname, 'public', 'index.html'));
   });
 }
 
