@@ -8,9 +8,12 @@ const app = express();
 // 中间件
 app.use(express.json());
 
+// 引入认证中间件
+const auth = require('./middleware/auth');
+
 // 路由
 app.use('/api/auth', require('./routes/auth'));
-app.use('/api/tasks', require('./routes/tasks'));
+app.use('/api/tasks', auth, require('./routes/tasks'));
 
 // 静态文件服务
 app.use(express.static(path.join(__dirname, 'public')));

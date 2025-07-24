@@ -50,12 +50,15 @@ registerForm.addEventListener('submit', async (e) => {
     }
 
     try {
+        // 生成UUID作为user_id
+        const user_id = generateUUID();
+        
         const res = await fetch('/api/auth/register', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ name, email, password })
+            body: JSON.stringify({ name, email, password, user_id })
         });
 
         const data = await res.json();
@@ -80,7 +83,7 @@ registerForm.addEventListener('submit', async (e) => {
 // 登录表单提交
 loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    
+
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
 
@@ -90,7 +93,7 @@ loginForm.addEventListener('submit', async (e) => {
         loginMessage.style.color = 'red';
         return;
     }
-    
+
     if (!password.trim()) {
         loginMessage.textContent = '请输入密码';
         loginMessage.style.color = 'red';
@@ -112,15 +115,19 @@ loginForm.addEventListener('submit', async (e) => {
 
         // 登录成功后的处理 - 添加页面跳转
         if (res.ok) {
-            // 安全地保存用户信息到本地存储
+            // 安全地保存用户信息和令牌到本地存储
             const userInfo = {
-                id: data.user.id,
+                user_id: data.user.user_id,
                 name: data.user.name,
                 email: data.user.email,
                 loginTime: new Date().toISOString()
             };
+            console.log('准备保存到本地存储的用户信息:', userInfo);
             localStorage.setItem('user', JSON.stringify(userInfo));
-            
+            localStorage.setItem('token', data.token);
+            console.log('本地存储已更新，用户信息:', JSON.parse(localStorage.getItem('user')));
+            console.log('本地存储的令牌:', localStorage.getItem('token'));
+
             // 跳转到todolist页面
             setTimeout(() => {
                 window.location.href = '/todolist.html';
@@ -132,3 +139,18 @@ loginForm.addEventListener('submit', async (e) => {
         loginMessage.style.color = 'red';
     }
 });
+
+// 邮箱验证函数
+function isValidEmail(email) {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+// 生成UUID函数
+function generateUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
