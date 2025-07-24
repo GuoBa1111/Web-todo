@@ -66,6 +66,7 @@ router.post('/', async (req, res) => {
     };
 
     // 打印 taskData 及其类型
+    console.log('创建任务数据:', taskData);
 
     const { data: task, error } = await supabase
       .from('tasks')

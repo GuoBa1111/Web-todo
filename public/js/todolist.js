@@ -6,41 +6,31 @@ const TaskManager = {
   currentCategory: '无标签',
   // 任务列表数据
   tasks: [],
-  // 添加当前编辑任务ID属性
-  currentEditingTaskId: null,  // 任务编辑ID
+  // 当前编辑任务ID
+  currentEditingTaskId: null,
 
   // 初始化函数
   async init() {
     console.log('================ 开始初始化 TaskManager ================');
-    
-    // 记录当前时间，用于测量初始化时间
     const startTime = Date.now();
-    
+
     // 检查本地存储
-    console.log('检查本地存储...');
     this.userId = this.getUserIdFromLocalStorage();
     console.log('获取到的userId:', this.userId);
-    
+
     if (!this.userId) {
       console.log('userId为空，10秒后重定向到登录页');
       setTimeout(() => {
         window.location.href = '/index.html';
-      }, 10000);  // 10秒后重定向
+      }, 10000);
       return;
     }
 
-    console.log('userId存在，开始加载任务...');
     await this.loadTasks();
-    
-    console.log('任务加载完成，开始渲染分类...');
     this.renderTaskCategories();
-    
-    console.log('分类渲染完成，开始渲染任务...');
     this.renderTasks();
-    
-    console.log('任务渲染完成，开始绑定事件...');
     this.bindEventListeners();
-    
+
     // 计算初始化耗时
     const endTime = Date.now();
     console.log(`================ 初始化完成，耗时: ${endTime - startTime}ms ================`);
@@ -51,23 +41,20 @@ const TaskManager = {
     console.log('从本地存储获取用户信息...');
     const user = JSON.parse(localStorage.getItem('user'));
     console.log('本地存储中的用户信息:', user);
-    return user?.user_id || null;  // 确保这里使用的是 user_id
+    return user?.user_id || null;
   },
 
-  // 加载任务数据
   // 加载任务数据
   async loadTasks() {
     try {
       console.log(`开始加载任务`);
-  
-      // 记录请求开始时间
       const requestStartTime = Date.now();
-  
+
       // 从本地存储获取令牌
       const token = localStorage.getItem('token');
       console.log('令牌:', token);
       console.log('用户信息:', JSON.parse(localStorage.getItem('user')));
-  
+
       const response = await fetch(`/api/tasks`, {
         headers: {
           'Content-Type': 'application/json',
@@ -75,25 +62,21 @@ const TaskManager = {
         },
         credentials: 'include'
       });
-  
-      // 记录请求结束时间
+
       const requestEndTime = Date.now();
       console.log(`请求耗时: ${requestEndTime - requestStartTime}ms, 状态码: ${response.status}`);
-  
+
       if (response.ok) {
         console.log('请求成功，开始解析数据...');
         this.tasks = await response.json();
         console.log(`成功加载到 ${this.tasks.length} 个任务`);
         console.log('任务数据:', this.tasks);
-  
+
         // 转换字段名以保持兼容性
         this.tasks = this.tasks.map(task => ({
           ...task,
           _id: task.id,
-          userId: task.user_id,
-          startTime: task.startTime,
-          endTime: task.endTime,
-          createdAt: task.createdAt
+          userId: task.user_id
         }));
       } else if (response.status === 401) {
         // 未授权，10秒后重定向到登录页
@@ -103,7 +86,7 @@ const TaskManager = {
         localStorage.removeItem('token');
         setTimeout(() => {
           window.location.href = '/index.html';
-        }, 10000);  // 10秒后重定向
+        }, 10000);
       } else {
         console.log(`加载任务失败，状态码: ${response.status}`);
         // 尝试获取错误信息
@@ -265,7 +248,7 @@ const TaskManager = {
       case '已归档':
         return this.tasks.filter(task => task.status === '已完成');
       default:
-        return this.tasks.filter(task => task.tags.includes(this.currentCategory));
+        return this.tasks.filter(task => task.tags.includes(category));
     }
   },
 
@@ -289,6 +272,7 @@ const TaskManager = {
     document.getElementById('logoutBtn').addEventListener('click', () => {
         if (confirm('确定要退出登录吗？')) {
             localStorage.removeItem('user');
+            localStorage.removeItem('token');
             window.location.href = '/index.html';
         }
     });
@@ -328,7 +312,6 @@ const TaskManager = {
     });
   },
 
-  // 更新任务状态
   // 更新任务状态
   async updateTaskStatus(taskId, status) {
     console.log('taskId',taskId);
