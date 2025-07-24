@@ -219,6 +219,12 @@
     margin-bottom: 5px;
 }
 
+/* 添加新的类用于内联标签 */
+.inline-label {
+    display: inline-block !important;
+    margin-bottom: 0 !important;
+}
+
 .form-group input, .form-group select, .form-group textarea {
     width: 100%;
     padding: 8px;

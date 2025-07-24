@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   tags text[] DEFAULT '{}',
   priority text CHECK (priority IN ('极低', '低', '中', '高', '极高')) DEFAULT '中',
   notes text,
+  starred boolean DEFAULT false,
   created_at timestamptz DEFAULT now()
 );
 

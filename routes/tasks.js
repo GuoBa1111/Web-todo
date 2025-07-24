@@ -62,7 +62,9 @@ router.post('/', async (req, res) => {
       endTime: req.body.endTime,
       tags: req.body.tags || [],
       priority: req.body.priority || '中',
-      notes: req.body.notes
+      notes: req.body.notes,
+      starred: req.body.starred || false,
+      createdAt: new Date().toISOString()
     };
 
     // 打印 taskData 及其类型
@@ -108,6 +110,7 @@ router.patch('/:id', async (req, res) => {
     if (req.body.tags !== undefined) updates.tags = req.body.tags;
     if (req.body.endTime !== undefined) updates.endTime = req.body.endTime;
     if (req.body.startTime !== undefined) updates.startTime = req.body.startTime;
+    if (req.body.starred !== undefined) updates.starred = req.body.starred;
     
     const { data: task, error } = await supabase
       .from('tasks')
