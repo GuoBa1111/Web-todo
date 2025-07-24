@@ -14,6 +14,7 @@ const auth = require('./middleware/auth');
 // 路由
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/tasks', auth, require('./routes/tasks'));
+app.use('/api/users', auth, require('./routes/users'));  // 添加这一行
 
 // 静态文件服务
 app.use(express.static(path.join(__dirname, 'public')));

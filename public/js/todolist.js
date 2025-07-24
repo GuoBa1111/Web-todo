@@ -22,10 +22,16 @@ const TaskManager = {
       return;
     }
 
+    // 加载用户的提醒时间设置
+    await this.loadUserRemindTime();
+
     await this.loadTasks();
     this.renderTaskCategories();
     this.renderTasks();
     this.bindEventListeners();
+
+// 绑定提醒时间选择事件
+    this.bindRemindTimeEvents();
 
     // 添加定时检查任务截止时间 (新增代码)
     this.checkDeadlineInterval = setInterval(() => {
@@ -211,11 +217,82 @@ const TaskManager = {
   }
   },
 
-  // 新增：检查任务截止时间并发送提醒
+ // 加载用户的提醒时间设置
+  async loadUserRemindTime() {
+    try {
+      console.log('开始加载用户提醒时间设置');
+      const token = localStorage.getItem('token');
+
+      const response = await fetch(`/api/users/${this.userId}/remindTime`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token
+        },
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // 保存提醒时间(分钟)
+        this.remindTime = data.remindTime || 60;
+        console.log(`加载用户提醒时间成功: ${this.remindTime}分钟`);
+
+        // 更新下拉菜单选中项
+        if (document.getElementById('remindTimeSelect')) {
+          document.getElementById('remindTimeSelect').value = this.remindTime;
+        }
+      } else {
+        console.log('加载用户提醒时间失败，使用默认值: 60分钟');
+      }
+    } catch (error) {
+      console.error('加载用户提醒时间发生错误:', error);
+    }
+  },
+
+  // 保存用户的提醒时间设置
+  async saveUserRemindTime(remindTime) {
+    try {
+      console.log(`开始保存用户提醒时间: ${remindTime}分钟`);
+      const token = localStorage.getItem('token');
+
+      const response = await fetch(`/api/users/${this.userId}/remindTime`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token
+        },
+        credentials: 'include',
+        body: JSON.stringify({ remindTime })
+      });
+
+      if (response.ok) {
+        console.log('保存用户提醒时间成功');
+        this.remindTime = remindTime;
+      } else {
+        console.log('保存用户提醒时间失败');
+      }
+    } catch (error) {
+      console.error('保存用户提醒时间发生错误:', error);
+    }
+  },
+
+  // 绑定提醒时间选择事件
+  bindRemindTimeEvents() {
+    const select = document.getElementById('remindTimeSelect');
+    if (select) {
+      select.addEventListener('change', (e) => {
+        const remindTime = parseInt(e.target.value);
+        console.log(`用户选择提醒时间: ${remindTime}分钟`);
+        this.saveUserRemindTime(remindTime);
+      });
+    }
+  },
+
+  // 检查任务截止时间并发送提醒
   checkTaskDeadlines() {
     console.log('开始检查任务截止时间');
     const now = new Date();
-    const oneHour = 3600000; // 1小时的毫秒数
+    const remindTimeMs = this.remindTime * 60000; // 转换为毫秒
 
     this.tasks.forEach(task => {
       // 跳过已完成、已提醒或无结束时间的任务
@@ -235,15 +312,15 @@ const TaskManager = {
       const endTime = new Date(task.endTime);
       const timeDiff = endTime - now;
 
-      // 如果任务将在1小时内结束且尚未提醒
-      if (timeDiff > 0 && timeDiff <= oneHour) {
-        console.log(`任务 ${task.title} 将在1小时内结束，发送提醒`);
+      // 如果任务将在设定的提醒时间内结束且尚未提醒
+      if (timeDiff > 0 && timeDiff <= remindTimeMs) {
+        console.log(`任务 ${task.title} 将在${this.remindTime}分钟内结束，发送提醒`);
         this.showExpiringAlert(task);
         task.notified = true; // 标记为已提醒，避免重复弹窗
       } else if (timeDiff <= 0) {
         console.log(`任务 ${task.title} 已过期`);
       } else {
-        console.log(`任务 ${task.title} 距离结束还有 ${Math.ceil(timeDiff / oneHour)} 小时`);
+        console.log(`任务 ${task.title} 距离结束还有 ${Math.ceil(timeDiff / 3600000)} 小时`);
       }
     });
   },

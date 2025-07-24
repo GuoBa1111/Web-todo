@@ -15,7 +15,21 @@
             <button id="logoutBtn" class="logout-btn">退出登录</button>
         </div>
         <div id="taskContent" class="task-content">
-            <h2>任务列表</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h2>任务列表</h2>
+                <div id="remindTimeSetting" style="font-size: 12px;">
+                    提醒时间: <select id="remindTimeSelect">
+                        <option value="15">15分钟</option>
+                        <option value="30">30分钟</option>
+                        <option value="60" selected>1小时</option>
+                        <option value="120">2小时</option>
+                        <option value="240">4小时</option>
+                        <option value="480">8小时</option>
+                        <option value="720">12小时</option>
+                        <option value="1440">24小时</option>
+                    </select>
+                </div>
+            </div>
             <div id="taskList" class="task-list"></div>
         </div>
     </div>
