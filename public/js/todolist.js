@@ -1,12 +1,8 @@
 // 任务数据管理
 const TaskManager = {
-  // 当前用户ID
   userId: null,
-  // 当前选中的分类
   currentCategory: '无标签',
-  // 任务列表数据
   tasks: [],
-  // 当前编辑任务ID
   currentEditingTaskId: null,
 
   // 初始化函数
@@ -30,6 +26,14 @@ const TaskManager = {
     this.renderTaskCategories();
     this.renderTasks();
     this.bindEventListeners();
+
+    // 添加定时检查任务截止时间 (新增代码)
+    this.checkDeadlineInterval = setInterval(() => {
+      this.checkTaskDeadlines();
+    }, 60000); // 每分钟检查一次
+
+    // 检查通知权限状态
+    this.checkNotificationPermission();
 
     // 计算初始化耗时
     const endTime = Date.now();
@@ -72,11 +76,12 @@ const TaskManager = {
         console.log(`成功加载到 ${this.tasks.length} 个任务`);
         console.log('任务数据:', this.tasks);
 
-        // 转换字段名以保持兼容性
+        // 转换字段名以保持兼容性 (修改代码)
         this.tasks = this.tasks.map(task => ({
           ...task,
           _id: task.id,
-          userId: task.user_id
+          userId: task.user_id,
+          notified: false // 添加提醒状态标记
         }));
 
         // 新增：自动更新任务状态
@@ -206,6 +211,97 @@ const TaskManager = {
   }
   },
 
+  // 新增：检查任务截止时间并发送提醒
+  checkTaskDeadlines() {
+    console.log('开始检查任务截止时间');
+    const now = new Date();
+    const oneHour = 3600000; // 1小时的毫秒数
+
+    this.tasks.forEach(task => {
+      // 跳过已完成、已提醒或无结束时间的任务
+      if (task.status === '已完成') {
+        console.log(`任务 ${task.title} 已完成，跳过提醒`);
+        return;
+      }
+      if (task.notified) {
+        console.log(`任务 ${task.title} 已提醒，跳过`);
+        return;
+      }
+      if (!task.endTime) {
+        console.log(`任务 ${task.title} 无结束时间，跳过`);
+        return;
+      }
+
+      const endTime = new Date(task.endTime);
+      const timeDiff = endTime - now;
+
+      // 如果任务将在1小时内结束且尚未提醒
+      if (timeDiff > 0 && timeDiff <= oneHour) {
+        console.log(`任务 ${task.title} 将在1小时内结束，发送提醒`);
+        this.showExpiringAlert(task);
+        task.notified = true; // 标记为已提醒，避免重复弹窗
+      } else if (timeDiff <= 0) {
+        console.log(`任务 ${task.title} 已过期`);
+      } else {
+        console.log(`任务 ${task.title} 距离结束还有 ${Math.ceil(timeDiff / oneHour)} 小时`);
+      }
+    });
+  },
+
+  // 新增：显示任务即将结束弹窗
+  showExpiringAlert(task) {
+    console.log(`显示任务 ${task.title} 的即将结束弹窗`);
+    // 检查浏览器是否支持Notification API
+    if (!('Notification' in window)) {
+        console.log('浏览器不支持系统通知功能');
+        alert('您的浏览器不支持系统通知功能');
+        return;
+    }
+
+    // 检查通知权限
+    console.log(`通知权限状态: ${Notification.permission}`);
+    if (Notification.permission !== 'granted') {
+        console.log('请求通知权限');
+        Notification.requestPermission().then(permission => {
+            console.log(`权限请求结果: ${permission}`);
+        });
+        return;
+    }
+
+    // 创建系统通知
+    try {
+        console.log(`创建系统通知: 任务 ${task.title} 即将到期`);
+        // 简化通知配置
+        const notification = new Notification('任务即将到期', {
+            body: `任务: ${task.title}\n截止时间: ${this.formatDateTime(new Date(task.endTime))}`,
+            // 移除可能导致问题的配置
+            requireInteraction: false,
+            silent: false
+        });
+
+        // 添加更多事件监听器
+        notification.onshow = () => {
+            console.log('通知显示成功');
+        };
+
+        notification.onerror = (error) => {
+            console.error('通知错误:', error);
+        };
+
+        notification.onclose = () => {
+            console.log('通知关闭');
+        };
+
+        notification.onclick = () => {
+            console.log('通知被点击');
+            window.focus();
+            notification.close();
+        };
+    } catch (error) {
+        console.error('创建通知失败:', error);
+    }
+  },
+
   // 渲染任务分类
   renderTaskCategories() {
     const categories = [
@@ -270,18 +366,10 @@ const TaskManager = {
       case '无标签':
       case '星标':
       case '今日截止':
-      case '已归档':
-        contentArea.classList.add('yellow-bg');
-        break;
-      case '个人':
-        contentArea.classList.add('green-bg');
-        break;
-      case '工作':
-        contentArea.classList.add('blue-bg');
-        break;
-      case '重要':
-        contentArea.classList.add('red-bg');
-        break;
+      case '已归档':contentArea.classList.add('yellow-bg');break;
+      case '个人':contentArea.classList.add('green-bg');break;
+      case '工作':contentArea.classList.add('blue-bg');break;
+      case '重要':contentArea.classList.add('red-bg');break;
     }
   },
 
@@ -446,32 +534,36 @@ const TaskManager = {
   // 显示添加任务模态框
   showAddTaskModal() {
     document.getElementById('taskModal').style.display = 'block';
-    // 设置开始时间默认值为当前时间
-    const now = new Date();
     
-    // 手动格式化本地时间为YYYY-MM-DDTHH:MM格式
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    
-    const formattedNow = `${year}-${month}-${day}T${hours}:${minutes}`;
-    document.getElementById('taskStartTime').value = formattedNow;
-  
-    // 修改：设置结束时间默认值为1天后
-    const tomorrow = new Date(now);
-    tomorrow.setDate(now.getDate() + 1);
-    
-    const tomorrowYear = tomorrow.getFullYear();
-    const tomorrowMonth = String(tomorrow.getMonth() + 1).padStart(2, '0');
-    const tomorrowDay = String(tomorrow.getDate()).padStart(2, '0');
-    const tomorrowHours = String(tomorrow.getHours()).padStart(2, '0');
-    const tomorrowMinutes = String(tomorrow.getMinutes()).padStart(2, '0');
-    
-    const formattedTomorrow = `${tomorrowYear}-${tomorrowMonth}-${tomorrowDay}T${tomorrowHours}:${tomorrowMinutes}`;
-    document.getElementById('taskEndTime').value = formattedTomorrow;
-  },
+    // 只有在非编辑模式下才设置默认时间
+    if (!this.currentEditingTaskId) {
+        // 设置开始时间默认值为当前时间
+        const now = new Date();
+        
+        // 手动格式化本地时间为YYYY-MM-DDTHH:MM格式
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        
+        const formattedNow = `${year}-${month}-${day}T${hours}:${minutes}`;
+        document.getElementById('taskStartTime').value = formattedNow;
+      
+        // 修改：设置结束时间默认值为1天后
+        const tomorrow = new Date(now);
+        tomorrow.setDate(now.getDate() + 1);
+        
+        const tomorrowYear = tomorrow.getFullYear();
+        const tomorrowMonth = String(tomorrow.getMonth() + 1).padStart(2, '0');
+        const tomorrowDay = String(tomorrow.getDate()).padStart(2, '0');
+        const tomorrowHours = String(tomorrow.getHours()).padStart(2, '0');
+        const tomorrowMinutes = String(tomorrow.getMinutes()).padStart(2, '0');
+        
+        const formattedTomorrow = `${tomorrowYear}-${tomorrowMonth}-${tomorrowDay}T${tomorrowHours}:${tomorrowMinutes}`;
+        document.getElementById('taskEndTime').value = formattedTomorrow;
+    }
+},
 
   // 隐藏添加任务模态框
   hideAddTaskModal() {
@@ -561,8 +653,35 @@ editTask(taskId) {
     document.getElementById('taskTitle').value = task.title;
     document.getElementById('taskPriority').value = task.priority;
     document.getElementById('taskNotes').value = task.notes || '';
-    document.getElementById('taskStartTime').value = task.startTime ? new Date(task.startTime).toISOString().slice(0, 16) : '';
-    document.getElementById('taskEndTime').value = task.endTime ? new Date(task.endTime).toISOString().slice(0, 16) : '';
+    
+    // 手动格式化开始时间
+    if (task.startTime) {
+        const startTime = new Date(task.startTime);
+        const year = startTime.getFullYear();
+        const month = String(startTime.getMonth() + 1).padStart(2, '0');
+        const day = String(startTime.getDate()).padStart(2, '0');
+        const hours = String(startTime.getHours()).padStart(2, '0');
+        const minutes = String(startTime.getMinutes()).padStart(2, '0');
+        const formattedStartTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+        document.getElementById('taskStartTime').value = formattedStartTime;
+    } else {
+        document.getElementById('taskStartTime').value = '';
+    }
+    
+    // 手动格式化结束时间
+    if (task.endTime) {
+        const endTime = new Date(task.endTime);
+        const year = endTime.getFullYear();
+        const month = String(endTime.getMonth() + 1).padStart(2, '0');
+        const day = String(endTime.getDate()).padStart(2, '0');
+        const hours = String(endTime.getHours()).padStart(2, '0');
+        const minutes = String(endTime.getMinutes()).padStart(2, '0');
+        const formattedEndTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+        document.getElementById('taskEndTime').value = formattedEndTime;
+    } else {
+        document.getElementById('taskEndTime').value = '';
+    }
+    
     document.getElementById('taskStarred').checked = task.starred || false;
 
     // 处理标签复选框
@@ -649,7 +768,33 @@ generateUUID() {
               v = c === 'x' ? r : (r & 0x3 | 0x8);
         return v.toString(16);
     });
+},
+// 检查通知权限状态
+checkNotificationPermission() {
+  // 检查浏览器是否支持Notification API
+  if (!('Notification' in window)) {
+    console.log('您的浏览器不支持系统通知功能');
+    return;
+  }
+
+  // 检查权限状态
+  if (Notification.permission === 'granted') {
+    console.log('通知权限已授予');
+  } else if (Notification.permission === 'denied') {
+    console.log('通知权限已拒绝');
+    this.showPermissionDeniedAlert();
+  } else {
+    console.log('通知权限尚未决定');
+  }
+},
+
+// 显示权限被拒绝的提示
+showPermissionDeniedAlert() {
+  // 这里可以实现一个提示用户如何启用通知权限的方法
+  console.log('请在浏览器设置中启用通知权限以接收任务提醒');
 }
+
+
 
 };
 
@@ -657,4 +802,5 @@ generateUUID() {
 document.addEventListener('DOMContentLoaded', () => {
   TaskManager.init();
 });
+
 
