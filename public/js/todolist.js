@@ -12,13 +12,10 @@ const TaskManager = {
 
     // 检查本地存储
     this.userId = this.getUserIdFromLocalStorage();
-    console.log('获取到的userId:', this.userId);
-
     if (!this.userId) {
-      console.log('userId为空，10秒后重定向到登录页');
       setTimeout(() => {
         window.location.href = '/index.html';
-      }, 10000);
+      }, 1000);
       return;
     }
 
@@ -48,9 +45,7 @@ const TaskManager = {
 
   // 从本地存储获取用户ID
   getUserIdFromLocalStorage() {
-    console.log('从本地存储获取用户信息...');
     const user = JSON.parse(localStorage.getItem('user'));
-    console.log('本地存储中的用户信息:', user);
     return user?.user_id || null;
   },
 
@@ -62,8 +57,6 @@ const TaskManager = {
 
       // 从本地存储获取令牌
       const token = localStorage.getItem('token');
-      console.log('令牌:', token);
-      console.log('用户信息:', JSON.parse(localStorage.getItem('user')));
 
       const response = await fetch(`/api/tasks`, {
         headers: {
@@ -80,7 +73,6 @@ const TaskManager = {
         console.log('请求成功，开始解析数据...');
         this.tasks = await response.json();
         console.log(`成功加载到 ${this.tasks.length} 个任务`);
-        console.log('任务数据:', this.tasks);
 
         // 转换字段名以保持兼容性 (修改代码)
         this.tasks = this.tasks.map(task => ({
@@ -94,13 +86,11 @@ const TaskManager = {
         this.autoUpdateTaskStatuses();
       } else if (response.status === 401) {
         // 未授权，10秒后重定向到登录页
-        console.log('未授权(401)，清除本地存储，10秒后重定向到登录页');
-        console.log('401错误时的令牌:', token);
         localStorage.removeItem('user');
         localStorage.removeItem('token');
         setTimeout(() => {
           window.location.href = '/index.html';
-        }, 10000);
+        }, 1000);
       } else {
         console.log(`加载任务失败，状态码: ${response.status}`);
         // 尝试获取错误信息
@@ -138,7 +128,6 @@ const TaskManager = {
 
   // 更新任务状态
   async updateTaskStatus(taskId, status) {
-    console.log('taskId',taskId);
     try {
     // 从本地存储获取令牌
     const token = localStorage.getItem('token');
@@ -298,6 +287,10 @@ const TaskManager = {
       // 跳过已完成、已提醒或无结束时间的任务
       if (task.status === '已完成') {
         console.log(`任务 ${task.title} 已完成，跳过提醒`);
+        return;
+      }
+      if (task.status === '已结束') {
+        console.log(`任务 ${task.title} 已结束，跳过提醒`);
         return;
       }
       if (task.notified) {
