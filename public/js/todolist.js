@@ -224,7 +224,6 @@ const TaskManager = {
         const data = await response.json();
         // 保存提醒时间(分钟)
         this.remindTime = data.remindTime || 60;
-        console.log(`加载用户提醒时间成功: ${this.remindTime}分钟`);
 
         // 更新下拉菜单选中项
         if (document.getElementById('remindTimeSelect')) {

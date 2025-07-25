@@ -122,11 +122,8 @@ loginForm.addEventListener('submit', async (e) => {
                 email: data.user.email,
                 loginTime: new Date().toISOString()
             };
-            console.log('准备保存到本地存储的用户信息:', userInfo);
             localStorage.setItem('user', JSON.stringify(userInfo));
             localStorage.setItem('token', data.token);
-            console.log('本地存储已更新，用户信息:', JSON.parse(localStorage.getItem('user')));
-            console.log('本地存储的令牌:', localStorage.getItem('token'));
 
             // 跳转到todolist页面
             setTimeout(() => {
