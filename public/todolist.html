@@ -17,17 +17,24 @@
         <div id="taskContent" class="task-content">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <h2>任务列表</h2>
-                <div id="remindTimeSetting" style="font-size: 12px;">
-                    提醒时间: <select id="remindTimeSelect">
-                        <option value="15">15分钟</option>
-                        <option value="30">30分钟</option>
-                        <option value="60" selected>1小时</option>
-                        <option value="120">2小时</option>
-                        <option value="240">4小时</option>
-                        <option value="480">8小时</option>
-                        <option value="720">12小时</option>
-                        <option value="1440">24小时</option>
-                    </select>
+                <div style="display: flex; align-items: center;">
+                    <div id="remindTimeSetting" style="font-size: 12px; margin-right: 15px;">
+                        提醒时间: <select id="remindTimeSelect">
+                            <option value="15">15分钟</option>
+                            <option value="30">30分钟</option>
+                            <option value="60" selected>1小时</option>
+                            <option value="120">2小时</option>
+                            <option value="240">4小时</option>
+                            <option value="480">8小时</option>
+                            <option value="720">12小时</option>
+                            <option value="1440">24小时</option>
+                        </select>
+                    </div>
+                    <div style="font-size: 12px;">
+                        导出: 
+                        <button id="exportCsvBtn" style="margin-left: 5px; padding: 3px 8px; font-size: 12px;">CSV</button>
+                        <button id="exportJsonBtn" style="margin-left: 5px; padding: 3px 8px; font-size: 12px;">JSON</button>
+                    </div>
                 </div>
             </div>
             <div id="taskList" class="task-list"></div>

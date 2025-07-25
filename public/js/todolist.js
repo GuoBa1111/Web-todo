@@ -456,7 +456,8 @@ const TaskManager = {
 
     filteredTasks.forEach(task => {
       const taskItem = document.createElement('div');
-      taskItem.className = `task-item ${task.status === '已完成' ? 'completed' : ''}`;
+      // 添加优先级样式类
+      taskItem.className = `task-item priority-${task.priority} ${task.status === '已完成' ? 'completed' : ''}`;
       taskItem.dataset.id = task._id;
 
       // 格式化日期显示
@@ -468,7 +469,7 @@ const TaskManager = {
           <input type="checkbox" ${task.status === '已完成' ? 'checked' : ''} data-id="${task._id}">
         </div>
         <div class="task-details">
-          <h3 class="task-title">${task.title} ${task.starred ? '<span class="star">★</span>' : ''}</h3>
+          <h3 class="task-title">${task.title} ${task.starred ? '<span class="star">★</span>' : ''} <span class="priority-tag ${task.priority}">${task.priority}</span></h3>
           <div class="task-meta">
             <span class="task-status">${task.status}</span>
             <span class="task-priority">优先级: ${task.priority}</span>
@@ -523,6 +524,16 @@ const TaskManager = {
         this.renderTaskCategories();
         this.renderTasks();
       }
+    });
+
+    // 添加导出CSV按钮事件
+    document.getElementById('exportCsvBtn').addEventListener('click', () => {
+      this.exportTasks('csv');
+    });
+
+    // 添加导出JSON按钮事件
+    document.getElementById('exportJsonBtn').addEventListener('click', () => {
+      this.exportTasks('json');
     });
 
     // 添加模态框关闭按钮事件
@@ -861,7 +872,59 @@ checkNotificationPermission() {
 showPermissionDeniedAlert() {
   // 这里可以实现一个提示用户如何启用通知权限的方法
   console.log('请在浏览器设置中启用通知权限以接收任务提醒');
-}
+},
+exportTasks(format) {
+    const filteredTasks = this.getFilteredTasks();
+
+    if (filteredTasks.length === 0) {
+      alert('当前没有任务可导出');
+      return;
+    }
+
+    // 准备导出数据
+    const exportData = filteredTasks.map(task => ({
+      id: task._id,
+      标题: task.title,
+      状态: task.status,
+      优先级: task.priority,
+      创建时间: this.formatDateTime(new Date(task.createdAt)),
+      开始时间: task.startTime ? this.formatDateTime(new Date(task.startTime)) : '',
+      截止时间: task.endTime ? this.formatDateTime(new Date(task.endTime)) : '',
+      标签: task.tags.join(','),
+      星标: task.starred ? '是' : '否',
+      备注: task.notes || ''
+    }));
+
+    if (format === 'csv') {
+      // 生成CSV
+      const headers = Object.keys(exportData[0]).join(',');
+      const rows = exportData.map(obj => Object.values(obj).join(',')).join('\n');
+      const csvContent = `${headers}\n${rows}`;
+
+      // 创建下载链接
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `tasks_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else if (format === 'json') {
+      // 生成JSON
+      const jsonContent = JSON.stringify(exportData, null, 2);
+
+      // 创建下载链接
+      const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `tasks_${new Date().toISOString().slice(0, 10)}.json`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  }
 
 
 
