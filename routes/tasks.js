@@ -7,7 +7,6 @@ router.get('/', async (req, res) => {
   try {
     // 从中间件获取用户ID
     const userId = req.user?.user_id;
-    console.log('用户ID:', userId);
 
     if (!userId) {
       return res.status(401).json({ msg: '用户未授权' });
@@ -18,9 +17,6 @@ router.get('/', async (req, res) => {
       .select('*')
       .eq('user_id', userId)
       .order('createdAt', { ascending: false });
-
-    console.log('查询结果:', tasks);
-    console.log('查询错误:', error);
 
     if (error) {
       console.error('Supabase error:', error);
@@ -68,7 +64,6 @@ router.post('/', async (req, res) => {
     };
 
     // 打印 taskData 及其类型
-    console.log('创建任务数据:', taskData);
 
     const { data: task, error } = await supabase
       .from('tasks')

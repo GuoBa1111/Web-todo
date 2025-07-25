@@ -19,6 +19,9 @@ const TaskManager = {
       return;
     }
 
+    // 显示用户名
+    this.displayUsername();
+
     // 加载用户的提醒时间设置
     await this.loadUserRemindTime();
 
@@ -526,6 +529,10 @@ const TaskManager = {
       }
     });
 
+    document.getElementById('importFile').addEventListener('change', () => {
+      this.importTasks();
+    });
+
     // 添加导出CSV按钮事件
     document.getElementById('exportCsvBtn').addEventListener('click', () => {
       this.exportTasks('csv');
@@ -924,7 +931,136 @@ exportTasks(format) {
       link.click();
       document.body.removeChild(link);
     }
-  }
+  },
+  displayUsername() {
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (user && user.name) {
+      document.getElementById('usernameDisplay').textContent = `欢迎, ${user.name}`;
+    }
+  },
+  importTasks() {
+    const fileInput = document.getElementById('importFile');
+    if (!fileInput.files || fileInput.files.length === 0) {
+      alert('请选择要导入的文件');
+      return;
+    }
+
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+
+    reader.onload = async (e) => {
+      try {
+        let tasks;
+        if (file.name.endsWith('.csv')) {
+          tasks = this.parseCsvData(e.target.result);
+        } else if (file.name.endsWith('.json')) {
+          tasks = JSON.parse(e.target.result);
+        } else {
+          alert('不支持的文件格式，请选择CSV或JSON文件');
+          return;
+        }
+
+        if (tasks.length === 0) {
+          alert('没有找到可导入的任务');
+          return;
+        }
+
+        // 导入任务到系统
+        const successCount = await this.importTasksToSystem(tasks);
+        alert(`成功导入 ${successCount} 个任务`);
+
+        // 重新加载任务
+        await this.loadTasks();
+        this.renderTaskCategories();
+        this.renderTasks();
+
+        // 重置文件输入
+        fileInput.value = '';
+      } catch (error) {
+        console.error('导入任务失败:', error);
+        alert('导入任务失败: ' + error.message);
+      }
+    };
+
+    reader.readAsText(file);
+  },
+
+  // 解析CSV数据
+  parseCsvData(csvData) {
+    const lines = csvData.split('\n');
+    if (lines.length < 2) {
+      return [];
+    }
+
+    const headers = lines[0].split(',');
+    const tasks = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      if (!lines[i].trim()) continue;
+
+      const values = lines[i].split(',');
+      const task = {};
+
+      for (let j = 0; j < headers.length; j++) {
+        task[headers[j]] = values[j] || '';
+      }
+
+      tasks.push(task);
+    }
+
+    return tasks;
+  },
+
+  // 导入任务到系统
+  async importTasksToSystem(tasks) {
+    const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user'));
+    const userId = user?.user_id || '';
+    let successCount = 0;
+
+
+    for (const task of tasks) {
+      try {
+        // 转换任务数据格式
+        const formattedTask = {
+          id: this.generateUUID(), // 生成唯一ID
+          userId: userId, // 添加用户ID
+          title: task.标题,
+          status: task.状态,
+          priority: task.优先级,
+          startTime: task.开始时间 ? new Date(task.开始时间).toISOString() : null,
+          endTime: task.截止时间 ? new Date(task.截止时间).toISOString() : null,
+          tags: task.标签 ? task.标签.split(',') : [],
+          starred: task.星标 === '是',
+          notes: task.备注
+        };
+
+
+        const response = await fetch('/api/tasks', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-auth-token': token
+          },
+          credentials: 'include',
+          body: JSON.stringify(formattedTask)
+        });
+
+        if (response.ok) {
+          successCount++;
+        } else {
+          // 查看错误响应的详细信息
+          const errorData = await response.json();
+          console.error('导入任务失败:', response.status, response.statusText, errorData);
+        }
+      } catch (error) {
+        console.error('导入单个任务失败:', error);
+      }
+    }
+
+    return successCount;
+  },
+// ... existing code ...
 
 
 

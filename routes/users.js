@@ -7,7 +7,6 @@ const auth = require('../middleware/auth');
 router.get('/:userId/remindTime', auth, async (req, res) => {
   try {
     const { userId } = req.params;
-    console.log(`获取用户 ${userId} 的提醒时间`);
 
     const { data, error } = await supabase
       .from('users')
@@ -22,7 +21,6 @@ router.get('/:userId/remindTime', auth, async (req, res) => {
 
     // 如果没有设置过提醒时间，返回默认值60分钟
     const remindTime = data ? data.remindTime : 60;
-    console.log(`成功获取用户提醒时间: ${remindTime}分钟`);
     res.json({ remindTime });
   } catch (err) {
     console.error('服务器异常:', err);
@@ -36,7 +34,6 @@ router.post('/:userId/remindTime', auth, async (req, res) => {
     const { userId } = req.params;
     const { remindTime } = req.body;
 
-    console.log(`保存用户 ${userId} 的提醒时间: ${remindTime}分钟`);
 
     // 验证提醒时间是否为数字
     if (typeof remindTime !== 'number' || isNaN(remindTime) || remindTime < 1) {
@@ -55,7 +52,6 @@ router.post('/:userId/remindTime', auth, async (req, res) => {
       return res.status(500).json({ msg: '保存提醒时间失败', error: error.message });
     }
 
-    console.log('成功保存用户提醒时间');
     res.json({ msg: '保存成功', remindTime: data.remindTime });
   } catch (err) {
     console.error('服务器异常:', err);
