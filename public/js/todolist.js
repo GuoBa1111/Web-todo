@@ -457,10 +457,15 @@ const TaskManager = {
       return;
     }
 
-    filteredTasks.forEach(task => {
+    // 分离未完成和已完成的任务
+    const unfinishedTasks = filteredTasks.filter(task => task.status !== '已完成');
+    const completedTasks = filteredTasks.filter(task => task.status === '已完成');
+
+    // 先渲染未完成的任务
+    unfinishedTasks.forEach(task => {
       const taskItem = document.createElement('div');
       // 添加优先级样式类
-      taskItem.className = `task-item priority-${task.priority} ${task.status === '已完成' ? 'completed' : ''}`;
+      taskItem.className = `task-item priority-${task.priority}`;
       taskItem.dataset.id = task._id;
 
       // 格式化日期显示
@@ -469,7 +474,46 @@ const TaskManager = {
 
       taskItem.innerHTML = `
         <div class="task-checkbox">
-          <input type="checkbox" ${task.status === '已完成' ? 'checked' : ''} data-id="${task._id}">
+          <input type="checkbox" data-id="${task._id}">
+        </div>
+        <div class="task-details">
+          <h3 class="task-title">${task.title} ${task.starred ? '<span class="star">★</span>' : ''} <span class="priority-tag ${task.priority}">${task.priority}</span></h3>
+          <div class="task-meta">
+            <span class="task-status">${task.status}</span>
+            <span class="task-priority">优先级: ${task.priority}</span>
+            <span class="task-date">创建时间: ${formattedDate}</span>
+          </div>
+          ${task.notes ? `<div class="task-notes">备注: ${task.notes}</div>` : ''}
+          ${task.tags.length > 0 ? `<div class="task-tags">${task.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}</div>` : ''}
+          ${task.startTime && task.endTime ? `
+            <div class="task-duration">
+              持续时间: ${this.formatDateTime(new Date(task.startTime))} - ${this.formatDateTime(new Date(task.endTime))}
+            </div>
+          ` : ''}
+        </div>
+        <div class="task-actions">
+          <button class="edit-btn" data-id="${task._id}">编辑</button>
+          <button class="delete-btn" data-id="${task._id}">删除</button>
+        </div>
+      `;
+
+      taskList.appendChild(taskItem);
+    });
+
+    // 再渲染已完成的任务
+    completedTasks.forEach(task => {
+      const taskItem = document.createElement('div');
+      // 添加优先级样式类和completed类
+      taskItem.className = `task-item priority-${task.priority} completed`;
+      taskItem.dataset.id = task._id;
+
+      // 格式化日期显示
+      const createdAt = new Date(task.createdAt);
+      const formattedDate = this.formatDateTime(createdAt);
+
+      taskItem.innerHTML = `
+        <div class="task-checkbox">
+          <input type="checkbox" checked data-id="${task._id}">
         </div>
         <div class="task-details">
           <h3 class="task-title">${task.title} ${task.starred ? '<span class="star">★</span>' : ''} <span class="priority-tag ${task.priority}">${task.priority}</span></h3>
